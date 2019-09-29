@@ -117,13 +117,13 @@ def calc(tree: TreeDirNode, dirA: str, dirB: str) -> None:
                 renamed_from = hashes[h]
                 tree.remove_file(renamed_from)
                 del hashes[h]
-        tree.add_file(ent, TreeFileNode(
-            Diff.RENAMED if renamed_from is not None else Diff.ADDED, renamed_from=renamed_from))
+        tree.add_file(ent, TreeFileNode(Diff.RENAMED if renamed_from is not None else Diff.ADDED,
+                                        renamed_from=renamed_from))
 
 
 def prune(tree: TreeDirNode) -> True:
-    tree.dirs = {name: node for name,
-                                node in tree.dirs.items() if prune(node) and node}
+    tree.dirs = {name: node for name, node in tree.dirs.items()
+                 if prune(node) and node}
     return True
 
 
@@ -135,8 +135,7 @@ def show(tree: TreeDirNode, level: int = 0, *, prefix: str = '') -> None:
         left_align = prefix + ('└' if last else '├') + '─' * PADDING
         if isinstance(node, TreeFileNode):
             if node.diff == Diff.RENAMED:
-                print(
-                    f"{left_align}{node.diff.value}{{{name} => {node.renamed_from}}}\033[0m")
+                print(f"{left_align}{node.diff.value}{{{name} => {node.renamed_from}}}\033[0m")
             else:
                 print(f"{left_align}{node.diff.value}{name}\033[0m")
         else:
