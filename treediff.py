@@ -16,7 +16,7 @@ class Diff(Enum):
     REMOVED = '\033[91m'
     ADDED = '\033[92m'
     CHANGED = '\033[93m'
-    RENAMED = '\033[93m'
+    RENAMED = '\033[96m'
 
 
 class TreeFileNode:
@@ -139,7 +139,7 @@ def show(tree: TreeDirNode, level: int = 0, *, prefix: str = '') -> None:
             else:
                 print(f"{left_align}{node.diff.value}{name}\033[0m")
         else:
-            print(f"{left_align}\033[1m📁 {name}\033[0m")
+            print(f"{left_align}\033[1m{name}\033[0m")
             subprefix = (' ' if last else '│') + ' ' * PADDING
             show(node, level + 1, prefix=prefix + subprefix)
 
