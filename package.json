@@ -19,11 +19,13 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
-    "@xtjs/lib": "^0.19.1"
+    "@xtjs/lib": "^0.19.1",
+    "progress": "^2.0.3"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "@types/node": "^16.0.0",
+    "@types/progress": "^2.0.3",
     "jest": "^27.0.6",
     "prettier": "2.3.2",
     "ts-jest": "^27.0.3",
