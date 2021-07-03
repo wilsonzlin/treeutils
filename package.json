@@ -15,7 +15,7 @@
     "clean": "rm -rf js",
     "format": "prettier --write '*.{js,json}' 'ts/**/*.ts'",
     "prepublishOnly": "npm run build && npm run test",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "extlib": "^0.19.0"
