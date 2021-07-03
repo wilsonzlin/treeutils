@@ -2,10 +2,11 @@
   "name": "@xtjs/util",
   "version": "0.0.1",
   "files": [
+    "bin/**",
     "js/**"
   ],
   "directories": {
-    "bin": "js"
+    "bin": "bin"
   },
   "repository": "https://github.com/wilsonzlin/xtjs-util",
   "author": "Wilson Lin <npm@wilsonl.in>",
