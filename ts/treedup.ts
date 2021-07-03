@@ -1,10 +1,11 @@
+import arrayFromAsyncIterable from "@xtjs/lib/js/arrayFromAsyncIterable";
 import assertState from "@xtjs/lib/js/assertState";
 import Dict from "@xtjs/lib/js/Dict";
-import PromiseQueue from "@xtjs/lib/js/PromiseQueue";
 import recursiveReaddir from "@xtjs/lib/js/recursiveReaddir";
 import { open, stat } from "fs/promises";
-import * as os from "os";
 import ProgressBar from "progress";
+
+const READ_CHUNK_SIZE = 16384;
 
 class MatchingFiles {
   readonly files: string[] = [];
@@ -18,18 +19,31 @@ class MatchingFiles {
     const src = this.files[0];
     const [srcFd, fd] = await Promise.all([open(src, "r"), open(file, "r")]);
     try {
-      const srcBuf = Buffer.alloc(8192);
-      const buf = Buffer.alloc(8192);
+      const srcBuf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
+      const buf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
       while (true) {
         const [srcRead, read] = await Promise.all([
-          srcFd.read(srcBuf),
-          fd.read(buf),
+          // @types/node are broken.
+          // Also, use the object form with all args, as .read(buffer) doesn't seem to work even though it's specified in the documentation.
+          srcFd.read({
+            buffer: srcBuf,
+            offset: 0,
+            length: READ_CHUNK_SIZE,
+            position: null,
+          } as any),
+          fd.read({
+            buffer: buf,
+            offset: 0,
+            length: READ_CHUNK_SIZE,
+            position: null,
+          } as any),
         ]);
         assertState(srcRead.bytesRead === read.bytesRead);
-        if (!srcRead.bytesRead) {
+        const { bytesRead } = srcRead;
+        if (!bytesRead) {
           break;
         }
-        if (!srcBuf.equals(buf)) {
+        if (!srcBuf.slice(0, bytesRead).equals(buf.slice(0, bytesRead))) {
           return false;
         }
       }
@@ -46,35 +60,30 @@ const treedup = async (
   onProgress: (stats: { processed: number; total: number }) => void
 ) => {
   const uniq = new Dict<number, MatchingFiles[]>();
-  const queue = new PromiseQueue(os.cpus().length * 2);
   let processed = 0;
   let total = 0;
   const callOnProgress = () => onProgress({ processed, total });
-  for await (const e of recursiveReaddir(rootDir)) {
-    total++;
-    callOnProgress();
+  const allFiles = await arrayFromAsyncIterable(recursiveReaddir(rootDir));
+  total = allFiles.length;
+  callOnProgress();
+  for (const e of allFiles) {
     // The tree must not be modified while treedup is running,
     // so we don't care about race conditions.
-    await queue
-      .add(async () => {
-        const stats = await stat(e);
-        assertState(stats.isFile());
-        const sets = uniq.computeIfAbsent(stats.size, () => []);
-        let matched = false;
-        for (const s of sets) {
-          if (await s.addIfEquals(e)) {
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          sets.push(new MatchingFiles(e));
-        }
-      })
-      .finally(() => {
-        processed++;
-        callOnProgress();
-      });
+    const stats = await stat(e);
+    assertState(stats.isFile());
+    const sets = uniq.computeIfAbsent(stats.size, () => []);
+    let matched = false;
+    for (const s of sets) {
+      if (await s.addIfEquals(e)) {
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      sets.push(new MatchingFiles(e));
+    }
+    processed++;
+    callOnProgress();
   }
   return [...uniq.values()].flatMap((s) =>
     s.filter((f) => f.files.length > 1).map((f) => f.files.sort())
@@ -86,12 +95,11 @@ export default treedup;
 if (require.main === module) {
   const progress = new ProgressBar("[:bar] :percent", {
     clear: true,
-    total: 100,
+    total: 50,
   });
   treedup(process.cwd(), (stats) =>
-    progress.update(Math.min(0.99, stats.processed / stats.total))
+    progress.update(stats.processed / stats.total)
   )
-    .finally(() => progress.terminate())
     .then((res) => {
       for (const set of res) {
         for (const p of set) {
