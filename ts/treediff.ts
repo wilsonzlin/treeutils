@@ -61,28 +61,32 @@ class TreeDirNode {
 }
 
 const equalFiles = async (f1: string, f2: string) => {
-  const [fp1, fp2] = await Promise.all([open(f1, "r"), open(f2, "r")]);
   const b1 = Buffer.allocUnsafe(BUFSIZE);
   const b2 = Buffer.allocUnsafe(BUFSIZE);
-  while (true) {
-    const [r1, r2] = await Promise.all([
-      fp1.read({
-        buffer: b1,
-        offset: 0,
-        length: BUFSIZE,
-      } as any),
-      fp2.read({
-        buffer: b2,
-        offset: 0,
-        length: BUFSIZE,
-      } as any),
-    ]);
-    if (!b1.slice(0, r1.bytesRead).equals(b2.slice(0, r2.bytesRead))) {
-      return false;
+  const [fp1, fp2] = await Promise.all([open(f1, "r"), open(f2, "r")]);
+  try {
+    while (true) {
+      const [r1, r2] = await Promise.all([
+        fp1.read({
+          buffer: b1,
+          offset: 0,
+          length: BUFSIZE,
+        } as any),
+        fp2.read({
+          buffer: b2,
+          offset: 0,
+          length: BUFSIZE,
+        } as any),
+      ]);
+      if (!b1.slice(0, r1.bytesRead).equals(b2.slice(0, r2.bytesRead))) {
+        return false;
+      }
+      if (!r1.bytesRead) {
+        return true;
+      }
     }
-    if (!r1.bytesRead) {
-      return true;
-    }
+  } finally {
+    await Promise.all([fp1.close(), fp2.close()]);
   }
 };
 
