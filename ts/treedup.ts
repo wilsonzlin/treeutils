@@ -77,7 +77,7 @@ const treedup = async (
     const sets = uniq.computeIfAbsent(stats.size, () => []);
     let matched = false;
     for (const s of sets) {
-      let subsequences: number[] | undefined = undefined;
+      let subsequences: number[] | undefined;
       switch (mode) {
         case "compare-3":
           subsequences = [
@@ -86,6 +86,11 @@ const treedup = async (
             stats.size - READ_CHUNK_SIZE,
           ];
           break;
+        case "compare-full":
+          subsequences = undefined;
+          break;
+        default:
+          throw new Error(`Unknown mode: ${mode}`);
       }
       if (await s.addIfEquals(path, subsequences)) {
         matched = true;
