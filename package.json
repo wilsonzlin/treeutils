@@ -21,7 +21,8 @@
   "dependencies": {
     "@xtjs/lib": "^0.19.1",
     "chalk": "^4.1.1",
-    "progress": "^2.0.3"
+    "progress": "^2.0.3",
+    "sacli": "^3.0.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",

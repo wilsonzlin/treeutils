@@ -5,6 +5,7 @@ import recursiveReaddir from "@xtjs/lib/js/recursiveReaddir";
 import chalk from "chalk";
 import { open, stat } from "fs/promises";
 import ProgressBar from "progress";
+import * as sacli from "sacli";
 
 const READ_CHUNK_SIZE = 16384;
 
@@ -16,13 +17,16 @@ class MatchingFiles {
   }
 
   // NOTE: {@param file} must have same size as files in this.files.
-  async addIfEquals(file: string) {
+  // If {@param subsequences} is provided, only those parts of the file
+  // will be used for comparison, instead of the whole file.
+  async addIfEquals(file: string, subsequences?: number[]) {
     const src = this.files[0];
     const [srcFd, fd] = await Promise.all([open(src, "r"), open(file, "r")]);
+    const srcBuf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
+    const buf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
     try {
-      const srcBuf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
-      const buf = Buffer.allocUnsafe(READ_CHUNK_SIZE);
-      while (true) {
+      for (let i = 0; !subsequences || i < subsequences.length; i++) {
+        const position = subsequences?.[i] ?? ([null] as const);
         const [srcRead, read] = await Promise.all([
           // @types/node are broken.
           // Also, use the object form with all args, as .read(buffer) doesn't seem to work even though it's specified in the documentation.
@@ -30,13 +34,13 @@ class MatchingFiles {
             buffer: srcBuf,
             offset: 0,
             length: READ_CHUNK_SIZE,
-            position: null,
+            position,
           } as any),
           fd.read({
             buffer: buf,
             offset: 0,
             length: READ_CHUNK_SIZE,
-            position: null,
+            position,
           } as any),
         ]);
         assertState(srcRead.bytesRead === read.bytesRead);
@@ -58,6 +62,7 @@ class MatchingFiles {
 
 const treedup = async (
   rootDir: string,
+  mode: "compare-full" | "compare-3",
   onTotal: (total: number) => void,
   onProgress: () => void
 ) => {
@@ -72,7 +77,17 @@ const treedup = async (
     const sets = uniq.computeIfAbsent(stats.size, () => []);
     let matched = false;
     for (const s of sets) {
-      if (await s.addIfEquals(path)) {
+      let subsequences: number[] | undefined = undefined;
+      switch (mode) {
+        case "compare-3":
+          subsequences = [
+            0,
+            (stats.size - READ_CHUNK_SIZE) / 2,
+            stats.size - READ_CHUNK_SIZE,
+          ];
+          break;
+      }
+      if (await s.addIfEquals(path, subsequences)) {
         matched = true;
         break;
       }
@@ -90,25 +105,33 @@ const treedup = async (
 export default treedup;
 
 if (require.main === module) {
-  let progress: ProgressBar;
-  treedup(
-    process.cwd(),
-    (total) =>
-      (progress = new ProgressBar("[:bar] :percent", {
-        clear: true,
-        total,
-        width: 50,
-      })),
-    () => progress.tick()
-  )
-    .then((sets) => {
-      for (const set of sets) {
-        console.log(chalk.green(set[0]));
-        for (const path of set.slice(1)) {
-          console.log(path);
-        }
-        console.log();
-      }
-    })
-    .catch(console.error);
+  const cli = sacli.Command.new()
+    .optional("dir", String)
+    .optional("mode", String)
+    .action(({ dir = process.cwd(), mode = "compare-full" }) => {
+      let progress: ProgressBar;
+      treedup(
+        dir,
+        mode as any,
+        (total) =>
+          (progress = new ProgressBar("[:bar] :percent", {
+            clear: true,
+            total,
+            width: 50,
+          })),
+        () => progress.tick()
+      )
+        .then((sets) => {
+          for (const set of sets) {
+            console.log(chalk.green(set[0]));
+            for (const path of set.slice(1)) {
+              console.log(path);
+            }
+            console.log();
+          }
+        })
+        .catch(console.error);
+    });
+
+  cli.eval(process.argv.slice(2));
 }
