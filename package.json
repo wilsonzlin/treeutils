@@ -13,7 +13,7 @@
   "license": "ISC",
   "scripts": {
     "build": "npm run clean && tsc && node build",
-    "clean": "rm -rf js",
+    "clean": "rm -rf bin js",
     "format": "prettier --write '*.{js,json}' 'ts/**/*.ts'",
     "prepublishOnly": "npm run build && npm run test",
     "test": "jest --passWithNoTests"
