@@ -1,6 +1,6 @@
 {
   "name": "@xtjs/util",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "files": [
     "bin/**",
     "js/**"
