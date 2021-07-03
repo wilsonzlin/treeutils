@@ -1,6 +1,6 @@
-import assertState from "extlib/js/assertState";
-import Dict from "extlib/js/Dict";
-import recursiveReaddir from "extlib/js/recursiveReaddir";
+import assertState from "@xtjs/lib/js/assertState";
+import Dict from "@xtjs/lib/js/Dict";
+import recursiveReaddir from "@xtjs/lib/js/recursiveReaddir";
 import { open, stat } from "fs/promises";
 
 class MatchingFiles {
