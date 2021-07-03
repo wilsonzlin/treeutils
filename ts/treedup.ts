@@ -89,7 +89,7 @@ if (require.main === module) {
     total: 100,
   });
   treedup(process.cwd(), (stats) =>
-    progress.update((stats.processed / stats.total) * 100)
+    progress.update(Math.min(0.99, stats.processed / stats.total))
   )
     .finally(() => progress.terminate())
     .then((res) => {
