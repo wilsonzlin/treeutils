@@ -110,7 +110,7 @@ const treedup = async (
 export default treedup;
 
 if (require.main === module) {
-  const cli = sacli.Command.new()
+  const cli = sacli.Command.new("treedup")
     .optional("dir", String)
     .optional("mode", String)
     .action(({ dir = process.cwd(), mode = "compare-full" }) => {
