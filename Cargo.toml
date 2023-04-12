@@ -1,6 +1,12 @@
 [package]
 name = "treeutils"
 version = "0.1.0"
+description = "Tools for deduplicating and diffing folders recursively"
+license = "Apache-2.0"
+homepage = "https://github.com/wilsonzlin/treeutils"
+repository = "https://github.com/wilsonzlin/treeutils.git"
+readme = "README.md"
+authors = ["Wilson Lin <code@wilsonl.in>"]
 edition = "2021"
 
 [dependencies]
